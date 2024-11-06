@@ -1,4 +1,5 @@
 import os
+import logging
 from flask import Flask, render_template, request, jsonify, flash, redirect, url_for, send_from_directory
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import DeclarativeBase
@@ -6,6 +7,10 @@ from datetime import datetime
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from werkzeug.utils import secure_filename
 from PIL import Image
+
+# Configure logging
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 class Base(DeclarativeBase):
     pass
@@ -25,11 +30,14 @@ app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
 UPLOAD_FOLDER = 'static/uploads'
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 MAX_IMAGE_SIZE = (800, 800)
+DEFAULT_IMAGE = 'default_beverage.png'
 
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 # Create uploads directory if it doesn't exist
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+# Set directory permissions
+os.chmod(UPLOAD_FOLDER, 0o755)
 
 db.init_app(app)
 
@@ -48,9 +56,15 @@ def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 def process_image(image_path):
-    with Image.open(image_path) as img:
-        img.thumbnail(MAX_IMAGE_SIZE)
-        img.save(image_path, optimize=True, quality=85)
+    try:
+        with Image.open(image_path) as img:
+            img.thumbnail(MAX_IMAGE_SIZE)
+            img.save(image_path, optimize=True, quality=85)
+        logger.info(f"Image processed successfully: {image_path}")
+        return True
+    except Exception as e:
+        logger.error(f"Error processing image {image_path}: {str(e)}")
+        return False
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -102,6 +116,13 @@ def logout():
 @login_required
 def inventory():
     beverages = models.Beverage.query.all()
+    for beverage in beverages:
+        if beverage.image_path:
+            image_path = os.path.join(app.config['UPLOAD_FOLDER'], beverage.image_path)
+            logger.debug(f"Image path for {beverage.name}: {image_path}")
+            if not os.path.exists(image_path):
+                logger.warning(f"Image not found for {beverage.name}: {image_path}")
+                beverage.image_path = DEFAULT_IMAGE
     return render_template('inventory.html', beverages=beverages)
 
 @app.route('/restock')
@@ -154,11 +175,24 @@ def add_restock():
         if 'image' in request.files:
             file = request.files['image']
             if file and allowed_file(file.filename):
-                filename = secure_filename(f"{beverage.id}_{file.filename}")
-                filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-                file.save(filepath)
-                process_image(filepath)
-                beverage.image_path = filename
+                try:
+                    filename = secure_filename(f"{beverage.id}_{file.filename}")
+                    filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                    file.save(filepath)
+                    if process_image(filepath):
+                        beverage.image_path = filename
+                        logger.info(f"Image uploaded successfully for {beverage.name}: {filepath}")
+                    else:
+                        beverage.image_path = DEFAULT_IMAGE
+                        logger.error(f"Failed to process image for {beverage.name}")
+                except Exception as e:
+                    logger.error(f"Error saving image for {beverage.name}: {str(e)}")
+                    beverage.image_path = DEFAULT_IMAGE
+            else:
+                logger.warning(f"Invalid or no image file provided for {beverage.name}")
+                beverage.image_path = DEFAULT_IMAGE
+        else:
+            beverage.image_path = DEFAULT_IMAGE
         
         beverage.quantity += quantity
         
@@ -173,6 +207,7 @@ def add_restock():
         flash('¡Inventario actualizado exitosamente!', 'success')
         return redirect(url_for('restock'))
     except Exception as e:
+        logger.error(f"Error in add_restock: {str(e)}")
         db.session.rollback()
         flash('Error al actualizar el inventario: ' + str(e), 'danger')
         return redirect(url_for('restock'))

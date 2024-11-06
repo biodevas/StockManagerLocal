@@ -8,10 +8,9 @@
             {% if beverage.quantity < 5 %}
             <div class="low-stock-badge">¡Stock Bajo!</div>
             {% endif %}
-            {% if beverage.image_path %}
-            <img src="{{ url_for('static', filename='uploads/' + beverage.image_path) }}" 
-                 class="card-img-top" alt="{{ beverage.name }}">
-            {% endif %}
+            <img src="{{ url_for('static', filename='uploads/' + (beverage.image_path or 'default_beverage.png')) }}" 
+                 class="card-img-top" alt="{{ beverage.name }}"
+                 onerror="this.src='{{ url_for('static', filename='uploads/default_beverage.png') }}'">
             <div class="card-body text-center">
                 <h3 class="card-title">{{ beverage.name }}</h3>
                 <p class="quantity-display {% if beverage.quantity < 5 %}quantity-warning{% endif %}" id="quantity-{{ beverage.id }}">
