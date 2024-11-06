@@ -11,4 +11,5 @@ dependencies = [
     "flask-wtf>=1.2.2",
     "psycopg2-binary>=2.9.10",
     "twilio>=9.3.6",
+    "pillow>=11.0.0",
 ]

@@ -21,6 +21,7 @@ class Beverage(db.Model):
     name = db.Column(db.String(64), unique=True, nullable=False)
     quantity = db.Column(db.Integer, default=0)
     price = db.Column(db.Float, nullable=False)
+    image_path = db.Column(db.String(255))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 

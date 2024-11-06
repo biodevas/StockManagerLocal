@@ -1,9 +1,11 @@
 import os
-from flask import Flask, render_template, request, jsonify, flash, redirect, url_for
+from flask import Flask, render_template, request, jsonify, flash, redirect, url_for, send_from_directory
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import DeclarativeBase
 from datetime import datetime
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
+from werkzeug.utils import secure_filename
+from PIL import Image
 
 class Base(DeclarativeBase):
     pass
@@ -19,6 +21,16 @@ app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
     "pool_pre_ping": True,
 }
 
+# File Upload Configuration
+UPLOAD_FOLDER = 'static/uploads'
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
+MAX_IMAGE_SIZE = (800, 800)
+
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
+# Create uploads directory if it doesn't exist
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
 db.init_app(app)
 
 # Initialize Flask-Login
@@ -31,6 +43,14 @@ with app.app_context():
     import models
     db.drop_all()  # Drop all tables
     db.create_all()  # Recreate all tables
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+def process_image(image_path):
+    with Image.open(image_path) as img:
+        img.thumbnail(MAX_IMAGE_SIZE)
+        img.save(image_path, optimize=True, quality=85)
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -129,6 +149,16 @@ def add_restock():
             beverage = models.Beverage(name=name, quantity=0, price=price)
             db.session.add(beverage)
             db.session.commit()  # Commit to get the beverage.id
+        
+        # Handle image upload
+        if 'image' in request.files:
+            file = request.files['image']
+            if file and allowed_file(file.filename):
+                filename = secure_filename(f"{beverage.id}_{file.filename}")
+                filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                file.save(filepath)
+                process_image(filepath)
+                beverage.image_path = filename
         
         beverage.quantity += quantity
         

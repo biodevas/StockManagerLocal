@@ -52,3 +52,11 @@
     -webkit-user-select: none;
     -moz-user-select: none;
 }
+
+/* Image styling */
+.card-img-top {
+    height: 200px;
+    object-fit: cover;
+    border-top-left-radius: var(--bs-card-inner-border-radius);
+    border-top-right-radius: var(--bs-card-inner-border-radius);
+}

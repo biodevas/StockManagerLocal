@@ -6,7 +6,7 @@
         <div class="card">
             <div class="card-body">
                 <h2 class="card-title text-center mb-4">Reabastecer Inventario</h2>
-                <form action="{{ url_for('add_restock') }}" method="POST">
+                <form action="{{ url_for('add_restock') }}" method="POST" enctype="multipart/form-data">
                     <div class="mb-3">
                         <label for="name" class="form-label">Nombre de la Bebida</label>
                         <input type="text" class="form-control form-control-lg" 
@@ -21,6 +21,11 @@
                         <label for="price" class="form-label">Precio por Unidad</label>
                         <input type="number" class="form-control form-control-lg" 
                                id="price" name="price" step="0.01" min="0" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="image" class="form-label">Imagen del Producto</label>
+                        <input type="file" class="form-control form-control-lg" 
+                               id="image" name="image" accept="image/*">
                     </div>
                     <button type="submit" class="btn btn-lg btn-primary w-100">
                         Agregar al Inventario
