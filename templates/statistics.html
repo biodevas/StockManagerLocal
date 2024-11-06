@@ -20,6 +20,19 @@
             </div>
         </div>
 
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <button id="exportSales" class="btn btn-outline-info btn-lg w-100">
+                    <i class="fas fa-file-export"></i> Exportar Ventas (CSV)
+                </button>
+            </div>
+            <div class="col-md-6">
+                <button id="exportTransactions" class="btn btn-outline-info btn-lg w-100">
+                    <i class="fas fa-file-export"></i> Exportar Transacciones (CSV)
+                </button>
+            </div>
+        </div>
+
         <div class="row">
             <div class="col-md-8">
                 <div class="stats-container mb-4">
@@ -47,5 +60,6 @@
     </div>
 </div>
 
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 <script src="{{ url_for('static', filename='js/statistics.js') }}"></script>
 {% endblock %}

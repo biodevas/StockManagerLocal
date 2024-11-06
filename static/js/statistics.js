@@ -11,6 +11,10 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('startDate').addEventListener('change', fetchAndDisplayStats);
     document.getElementById('endDate').addEventListener('change', fetchAndDisplayStats);
     
+    // Add event listeners for export buttons
+    document.getElementById('exportSales').addEventListener('click', () => exportData('sales'));
+    document.getElementById('exportTransactions').addEventListener('click', () => exportData('transactions'));
+    
     fetchAndDisplayStats();
 });
 
@@ -98,5 +102,28 @@ async function fetchAndDisplayStats() {
         });
     } catch (error) {
         console.error('Error fetching statistics:', error);
+    }
+}
+
+async function exportData(type) {
+    try {
+        const startDate = document.getElementById('startDate').value;
+        const endDate = document.getElementById('endDate').value;
+        
+        // Create a hidden anchor element for download
+        const link = document.createElement('a');
+        link.style.display = 'none';
+        document.body.appendChild(link);
+        
+        // Get the export URL
+        const url = `/api/export/${type}?start_date=${startDate}&end_date=${endDate}`;
+        
+        // Trigger the download
+        window.location.href = url;
+        
+        // Clean up
+        document.body.removeChild(link);
+    } catch (error) {
+        console.error(`Error exporting ${type}:`, error);
     }
 }

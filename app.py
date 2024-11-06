@@ -1,6 +1,6 @@
 import os
 import logging
-from flask import Flask, render_template, request, jsonify, flash, redirect, url_for, send_from_directory
+from flask import Flask, render_template, request, jsonify, flash, redirect, url_for, send_from_directory, make_response
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import DeclarativeBase
 from datetime import datetime, timedelta
@@ -9,6 +9,8 @@ from werkzeug.utils import secure_filename
 from PIL import Image
 import PIL.WebPImagePlugin  # Explicit WebP support
 import imghdr
+import csv
+import io
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
@@ -340,4 +342,112 @@ def get_stats():
         
     except Exception as e:
         logger.error(f"Error getting stats: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/export/sales')
+@login_required
+def export_sales():
+    try:
+        start_date = request.args.get('start_date')
+        end_date = request.args.get('end_date')
+        
+        if start_date:
+            start_date = datetime.strptime(start_date, '%Y-%m-%d')
+        else:
+            start_date = datetime.now() - timedelta(days=30)
+            
+        if end_date:
+            end_date = datetime.strptime(end_date, '%Y-%m-%d')
+            end_date = end_date + timedelta(days=1)
+        else:
+            end_date = datetime.now()
+
+        # Query detailed sales data
+        sales = db.session.query(
+            models.Beverage.name,
+            models.Transaction.quantity_change,
+            models.Transaction.timestamp,
+            models.Beverage.price
+        ).join(
+            models.Beverage
+        ).filter(
+            models.Transaction.transaction_type == 'sale',
+            models.Transaction.timestamp >= start_date,
+            models.Transaction.timestamp <= end_date
+        ).order_by(models.Transaction.timestamp.desc()).all()
+
+        # Create CSV in memory
+        si = io.StringIO()
+        writer = csv.writer(si)
+        writer.writerow(['Producto', 'Cantidad', 'Fecha', 'Precio Unitario', 'Total'])
+
+        for sale in sales:
+            writer.writerow([
+                sale.name,
+                abs(sale.quantity_change),
+                sale.timestamp.strftime('%Y-%m-%d %H:%M:%S'),
+                f"${sale.price:.2f}",
+                f"${abs(sale.quantity_change * sale.price):.2f}"
+            ])
+
+        output = make_response(si.getvalue())
+        output.headers["Content-Disposition"] = f"attachment; filename=ventas_{start_date.strftime('%Y%m%d')}-{end_date.strftime('%Y%m%d')}.csv"
+        output.headers["Content-type"] = "text/csv"
+        return output
+
+    except Exception as e:
+        logger.error(f"Error exporting sales: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/export/transactions')
+@login_required
+def export_transactions():
+    try:
+        start_date = request.args.get('start_date')
+        end_date = request.args.get('end_date')
+        
+        if start_date:
+            start_date = datetime.strptime(start_date, '%Y-%m-%d')
+        else:
+            start_date = datetime.now() - timedelta(days=30)
+            
+        if end_date:
+            end_date = datetime.strptime(end_date, '%Y-%m-%d')
+            end_date = end_date + timedelta(days=1)
+        else:
+            end_date = datetime.now()
+
+        # Query all transactions
+        transactions = db.session.query(
+            models.Beverage.name,
+            models.Transaction.quantity_change,
+            models.Transaction.timestamp,
+            models.Transaction.transaction_type
+        ).join(
+            models.Beverage
+        ).filter(
+            models.Transaction.timestamp >= start_date,
+            models.Transaction.timestamp <= end_date
+        ).order_by(models.Transaction.timestamp.desc()).all()
+
+        # Create CSV in memory
+        si = io.StringIO()
+        writer = csv.writer(si)
+        writer.writerow(['Producto', 'Cantidad', 'Tipo', 'Fecha'])
+
+        for transaction in transactions:
+            writer.writerow([
+                transaction.name,
+                abs(transaction.quantity_change),
+                'Venta' if transaction.transaction_type == 'sale' else 'Reabastecimiento',
+                transaction.timestamp.strftime('%Y-%m-%d %H:%M:%S')
+            ])
+
+        output = make_response(si.getvalue())
+        output.headers["Content-Disposition"] = f"attachment; filename=transacciones_{start_date.strftime('%Y%m%d')}-{end_date.strftime('%Y%m%d')}.csv"
+        output.headers["Content-type"] = "text/csv"
+        return output
+
+    except Exception as e:
+        logger.error(f"Error exporting transactions: {str(e)}")
         return jsonify({'error': str(e)}), 500
