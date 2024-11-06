@@ -209,7 +209,7 @@ def add_restock():
         
         beverage = models.Beverage.query.filter_by(name=name).first()
         if not beverage:
-            beverage = models.Beverage(name=name, quantity=0, price=price)
+            beverage = models.Beverage(name=name, quantity=0, price=price, image_path=DEFAULT_IMAGE)
             db.session.add(beverage)
             db.session.commit()  # Commit to get the beverage.id
         
@@ -252,14 +252,13 @@ def add_restock():
                 except ValueError as ve:
                     logger.error(f"Validation error for {beverage.name}: {str(ve)}")
                     flash(str(ve), 'danger')
-                    beverage.image_path = DEFAULT_IMAGE
+                    if not beverage.image_path:
+                        beverage.image_path = DEFAULT_IMAGE
                 except Exception as e:
                     logger.error(f"Error saving image for {beverage.name}: {str(e)}")
                     flash('Error al subir la imagen. Por favor, intente nuevamente', 'danger')
-                    beverage.image_path = DEFAULT_IMAGE
-            else:
-                logger.warning(f"No image file provided for {beverage.name}")
-                beverage.image_path = DEFAULT_IMAGE
+                    if not beverage.image_path:
+                        beverage.image_path = DEFAULT_IMAGE
         
         beverage.quantity += quantity
         
