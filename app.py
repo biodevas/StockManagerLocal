@@ -3,7 +3,7 @@ import logging
 from flask import Flask, render_template, request, jsonify, flash, redirect, url_for, send_from_directory
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import DeclarativeBase
-from datetime import datetime
+from datetime import datetime, timedelta
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from werkzeug.utils import secure_filename
 from PIL import Image
@@ -282,15 +282,63 @@ def add_restock():
 @app.route('/api/stats')
 @login_required
 def get_stats():
-    beverages = models.Beverage.query.all()
-    stats = []
-    for beverage in beverages:
-        sales = models.Transaction.query.filter_by(
-            beverage_id=beverage.id,
-            transaction_type='sale'
-        ).count()
-        stats.append({
-            'name': beverage.name,
-            'sales': abs(sales)
+    try:
+        # Get date range from query parameters
+        start_date = request.args.get('start_date')
+        end_date = request.args.get('end_date')
+        
+        # Convert string dates to datetime objects
+        if start_date:
+            start_date = datetime.strptime(start_date, '%Y-%m-%d')
+        else:
+            start_date = datetime.now() - timedelta(days=30)
+            
+        if end_date:
+            end_date = datetime.strptime(end_date, '%Y-%m-%d')
+            # Add one day to include the entire end date
+            end_date = end_date + timedelta(days=1)
+        else:
+            end_date = datetime.now()
+        
+        # Query transactions within date range
+        sales_query = db.session.query(
+            models.Transaction.beverage_id,
+            models.Beverage.name,
+            db.func.sum(db.func.abs(models.Transaction.quantity_change)).label('total_sales')
+        ).join(
+            models.Beverage
+        ).filter(
+            models.Transaction.transaction_type == 'sale',
+            models.Transaction.timestamp >= start_date,
+            models.Transaction.timestamp <= end_date
+        ).group_by(
+            models.Transaction.beverage_id,
+            models.Beverage.name
+        )
+        
+        sales_data = []
+        total_sales = 0
+        top_product = None
+        max_sales = 0
+        
+        for sale in sales_query.all():
+            sales_count = int(sale.total_sales)
+            sales_data.append({
+                'name': sale.name,
+                'sales': sales_count
+            })
+            total_sales += sales_count
+            
+            if sales_count > max_sales:
+                max_sales = sales_count
+                top_product = sale.name
+        
+        return jsonify({
+            'sales_data': sales_data,
+            'total_sales': total_sales,
+            'top_product': top_product
         })
-    return jsonify(stats)
+        
+    except Exception as e:
+        logger.error(f"Error getting stats: {str(e)}")
+        return jsonify({'error': str(e)}), 500
