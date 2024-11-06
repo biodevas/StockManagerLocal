@@ -8,6 +8,15 @@
                 <h2 class="card-title text-center mb-4">Reabastecer Inventario</h2>
                 <form action="{{ url_for('add_restock') }}" method="POST" enctype="multipart/form-data">
                     <div class="mb-3">
+                        <label for="beverage-select" class="form-label">Seleccionar Bebida Existente</label>
+                        <select class="form-select form-select-lg mb-3" id="beverage-select">
+                            <option value="">Nueva Bebida</option>
+                            {% for beverage in beverages %}
+                            <option value="{{ beverage.id }}" data-price="{{ beverage.price }}">{{ beverage.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
                         <label for="name" class="form-label">Nombre de la Bebida</label>
                         <input type="text" class="form-control form-control-lg" 
                                id="name" name="name" required>
@@ -35,4 +44,6 @@
         </div>
     </div>
 </div>
+
+<script src="{{ url_for('static', filename='js/restock.js') }}"></script>
 {% endblock %}
