@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <div class="card-body">
+        <h2 class="card-title text-center mb-4">Sales Statistics</h2>
+        <div class="stats-container">
+            <canvas id="salesChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<script src="{{ url_for('static', filename='js/statistics.js') }}"></script>
+{% endblock %}

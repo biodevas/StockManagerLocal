@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    {% for beverage in beverages %}
+    <div class="col-md-4 col-sm-6">
+        <div class="card beverage-card no-select">
+            <div class="card-body text-center">
+                <h3 class="card-title">{{ beverage.name }}</h3>
+                <p class="quantity-display" id="quantity-{{ beverage.id }}">
+                    {{ beverage.quantity }}
+                </p>
+                <button class="btn btn-lg btn-outline-danger decrease-btn w-100" 
+                        data-beverage-id="{{ beverage.id }}">
+                    Decrease (-1)
+                </button>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<script src="{{ url_for('static', filename='js/inventory.js') }}"></script>
+{% endblock %}

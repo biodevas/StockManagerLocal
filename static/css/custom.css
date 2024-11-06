@@ -1,0 +1,32 @@
+.beverage-card {
+    min-height: 200px;
+    margin-bottom: 1rem;
+    cursor: pointer;
+}
+
+.btn-lg {
+    min-height: 60px;
+    font-size: 1.2rem;
+}
+
+.quantity-display {
+    font-size: 2rem;
+    font-weight: bold;
+}
+
+.stats-container {
+    height: 400px;
+}
+
+/* Touch-friendly spacing */
+.form-control {
+    height: 50px;
+    font-size: 1.1rem;
+}
+
+/* Prevent text selection on touch */
+.no-select {
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+}
