@@ -8,19 +8,21 @@
             {% if beverage.quantity < 5 %}
             <div class="low-stock-badge">¡Stock Bajo!</div>
             {% endif %}
-            <img src="{{ url_for('static', filename='uploads/' + (beverage.image_path or 'default_beverage.png')) }}" 
-                 class="card-img-top" alt="{{ beverage.name }}"
-                 onerror="this.src='{{ url_for('static', filename='uploads/default_beverage.png') }}'">
-            <div class="card-body text-center">
-                <h3 class="card-title">{{ beverage.name }}</h3>
-                <p class="quantity-display {% if beverage.quantity < 5 %}quantity-warning{% endif %}" id="quantity-{{ beverage.id }}">
-                    {{ beverage.quantity }}
-                </p>
-                <button class="btn btn-lg btn-outline-danger decrease-btn w-100" 
-                        data-beverage-id="{{ beverage.id }}">
-                    Disminuir (-1)
-                </button>
+            <div class="beverage-image-container">
+                <img src="{{ url_for('static', filename='uploads/' + (beverage.image_path or 'default_beverage.png')) }}" 
+                     class="card-img-top" alt="{{ beverage.name }}"
+                     onerror="this.src='{{ url_for('static', filename='uploads/default_beverage.png') }}'">
+                <div class="beverage-overlay">
+                    <h3 class="beverage-title">{{ beverage.name }}</h3>
+                    <p class="quantity-display {% if beverage.quantity < 5 %}quantity-warning{% endif %}" id="quantity-{{ beverage.id }}">
+                        {{ beverage.quantity }}
+                    </p>
+                </div>
             </div>
+            <button class="btn btn-lg btn-outline-danger decrease-btn w-100" 
+                    data-beverage-id="{{ beverage.id }}">
+                Disminuir (-1)
+            </button>
         </div>
     </div>
     {% endfor %}
