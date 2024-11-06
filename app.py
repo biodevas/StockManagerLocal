@@ -12,7 +12,6 @@ import imghdr
 import csv
 import io
 
-# Configure logging
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
@@ -22,9 +21,13 @@ class Base(DeclarativeBase):
 db = SQLAlchemy(model_class=Base)
 app = Flask(__name__)
 
-# Configuration
 app.secret_key = os.environ.get("FLASK_SECRET_KEY") or "a secret key"
 database_url = os.environ.get("DATABASE_URL")
+if not database_url:
+    raise RuntimeError(
+        "DATABASE_URL environment variable is not set. "
+        "Please ensure all required environment variables are properly configured."
+    )
 if database_url.startswith("postgres://"):
     database_url = database_url.replace("postgres://", "postgresql://", 1)
 app.config["SQLALCHEMY_DATABASE_URI"] = database_url
@@ -33,24 +36,20 @@ app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
     "pool_pre_ping": True,
 }
 
-# File Upload Configuration
 UPLOAD_FOLDER = 'static/uploads'
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp', 'avif'}
 MAX_IMAGE_SIZE = (800, 800)
-MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
+MAX_FILE_SIZE = 5 * 1024 * 1024
 DEFAULT_IMAGE = 'default_beverage.png'
 
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = MAX_FILE_SIZE
 
-# Create uploads directory if it doesn't exist
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-# Set directory permissions
 os.chmod(UPLOAD_FOLDER, 0o755)
 
 db.init_app(app)
 
-# Initialize Flask-Login
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
@@ -58,11 +57,10 @@ login_manager.login_message = 'Por favor inicie sesión para acceder a esta pág
 
 with app.app_context():
     import models
-    db.drop_all()  # Drop all tables
-    db.create_all()  # Recreate all tables
+    db.drop_all()
+    db.create_all()
 
 def validate_image(stream):
-    """Validate image format using imghdr"""
     header = stream.read(512)
     stream.seek(0)
     format = imghdr.what(None, header)
@@ -74,10 +72,8 @@ def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 def process_image(image_path):
-    """Process and optimize uploaded images"""
     try:
         with Image.open(image_path) as img:
-            # Convert RGBA images to RGB if needed
             if img.mode in ('RGBA', 'LA'):
                 background = Image.new('RGB', img.size, 'white')
                 if img.mode == 'RGBA':
@@ -86,11 +82,9 @@ def process_image(image_path):
                     background.paste(img, mask=img.split()[1])
                 img = background
 
-            # Resize image if needed
             if img.size[0] > MAX_IMAGE_SIZE[0] or img.size[1] > MAX_IMAGE_SIZE[1]:
                 img.thumbnail(MAX_IMAGE_SIZE)
 
-            # Save with format-specific optimizations
             format = img.format if img.format else 'JPEG'
             save_options = {}
             
@@ -216,24 +210,20 @@ def add_restock():
         if not beverage:
             beverage = models.Beverage(name=name, quantity=0, price=price, image_path=DEFAULT_IMAGE)
             db.session.add(beverage)
-            db.session.commit()  # Commit to get the beverage.id
+            db.session.commit()
         
-        # Handle image upload
         if 'image' in request.files:
             file = request.files['image']
             if file and file.filename:
                 try:
-                    # Validate file extension
                     if not allowed_file(file.filename):
                         raise ValueError("El formato de archivo no está permitido. Formatos permitidos: " + 
                                       ", ".join(ALLOWED_EXTENSIONS))
                     
-                    # Additional server-side format validation
                     file_ext = validate_image(file.stream)
                     if not file_ext and not file.filename.lower().endswith('.webp'):
                         raise ValueError("El formato de imagen no es válido")
                     
-                    # Save and process the image
                     if file.filename.lower().endswith('.webp'):
                         file_ext = '.webp'
                     filename = secure_filename(f"{beverage.id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}{file_ext}")
@@ -243,7 +233,6 @@ def add_restock():
                     file.save(filepath)
                     
                     if process_image(filepath):
-                        # Remove old image if it exists and is not the default
                         if beverage.image_path and beverage.image_path != DEFAULT_IMAGE:
                             old_image_path = os.path.join(app.config['UPLOAD_FOLDER'], beverage.image_path)
                             if os.path.exists(old_image_path):
@@ -287,11 +276,9 @@ def add_restock():
 @login_required
 def get_stats():
     try:
-        # Get date range from query parameters
         start_date = request.args.get('start_date')
         end_date = request.args.get('end_date')
         
-        # Convert string dates to datetime objects
         if start_date:
             start_date = datetime.strptime(start_date, '%Y-%m-%d')
         else:
@@ -299,12 +286,10 @@ def get_stats():
             
         if end_date:
             end_date = datetime.strptime(end_date, '%Y-%m-%d')
-            # Add one day to include the entire end date
             end_date = end_date + timedelta(days=1)
         else:
             end_date = datetime.now()
         
-        # Query transactions within date range
         sales_query = db.session.query(
             models.Transaction.beverage_id,
             models.Beverage.name,
@@ -365,7 +350,6 @@ def export_sales():
         else:
             end_date = datetime.now()
 
-        # Query detailed sales data
         sales = db.session.query(
             models.Beverage.name,
             models.Transaction.quantity_change,
@@ -379,7 +363,6 @@ def export_sales():
             models.Transaction.timestamp <= end_date
         ).order_by(models.Transaction.timestamp.desc()).all()
 
-        # Create CSV in memory
         si = io.StringIO()
         writer = csv.writer(si)
         writer.writerow(['Producto', 'Cantidad', 'Fecha', 'Precio Unitario', 'Total'])
@@ -420,7 +403,6 @@ def export_transactions():
         else:
             end_date = datetime.now()
 
-        # Query all transactions
         transactions = db.session.query(
             models.Beverage.name,
             models.Transaction.quantity_change,
@@ -433,7 +415,6 @@ def export_transactions():
             models.Transaction.timestamp <= end_date
         ).order_by(models.Transaction.timestamp.desc()).all()
 
-        # Create CSV in memory
         si = io.StringIO()
         writer = csv.writer(si)
         writer.writerow(['Producto', 'Cantidad', 'Tipo', 'Fecha'])
