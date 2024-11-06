@@ -4,10 +4,13 @@
 <div class="row">
     {% for beverage in beverages %}
     <div class="col-md-4 col-sm-6">
-        <div class="card beverage-card no-select">
+        <div class="card beverage-card no-select {% if beverage.quantity < 5 %}low-stock{% endif %} position-relative">
+            {% if beverage.quantity < 5 %}
+            <div class="low-stock-badge">¡Stock Bajo!</div>
+            {% endif %}
             <div class="card-body text-center">
                 <h3 class="card-title">{{ beverage.name }}</h3>
-                <p class="quantity-display" id="quantity-{{ beverage.id }}">
+                <p class="quantity-display {% if beverage.quantity < 5 %}quantity-warning{% endif %}" id="quantity-{{ beverage.id }}">
                     {{ beverage.quantity }}
                 </p>
                 <button class="btn btn-lg btn-outline-danger decrease-btn w-100" 

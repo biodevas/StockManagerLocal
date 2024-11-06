@@ -2,6 +2,7 @@
     min-height: 200px;
     margin-bottom: 1rem;
     cursor: pointer;
+    transition: all 0.3s ease;
 }
 
 .btn-lg {
@@ -11,6 +12,27 @@
 
 .quantity-display {
     font-size: 2rem;
+    font-weight: bold;
+}
+
+.low-stock {
+    border: 2px solid var(--bs-warning);
+    background-color: var(--bs-warning-bg-subtle);
+}
+
+.quantity-warning {
+    color: var(--bs-warning);
+}
+
+.low-stock-badge {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    padding: 5px 10px;
+    background-color: var(--bs-warning);
+    color: var(--bs-dark);
+    border-radius: 4px;
+    font-size: 0.8rem;
     font-weight: bold;
 }
 
