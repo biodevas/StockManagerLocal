@@ -11,6 +11,9 @@ import PIL.WebPImagePlugin  # Explicit WebP support
 import imghdr
 import csv
 import io
+from dotenv import load_dotenv
+
+load_dotenv()  # This will load the environment variables from .env file
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
