@@ -5,25 +5,25 @@
     <div class="col-md-8">
         <div class="card">
             <div class="card-body">
-                <h2 class="card-title text-center mb-4">Restock Inventory</h2>
+                <h2 class="card-title text-center mb-4">Reabastecer Inventario</h2>
                 <form action="{{ url_for('add_restock') }}" method="POST">
                     <div class="mb-3">
-                        <label for="name" class="form-label">Beverage Name</label>
+                        <label for="name" class="form-label">Nombre de la Bebida</label>
                         <input type="text" class="form-control form-control-lg" 
                                id="name" name="name" required>
                     </div>
                     <div class="mb-3">
-                        <label for="quantity" class="form-label">Quantity to Add</label>
+                        <label for="quantity" class="form-label">Cantidad a Agregar</label>
                         <input type="number" class="form-control form-control-lg" 
                                id="quantity" name="quantity" min="1" required>
                     </div>
                     <div class="mb-3">
-                        <label for="price" class="form-label">Price per Unit</label>
+                        <label for="price" class="form-label">Precio por Unidad</label>
                         <input type="number" class="form-control form-control-lg" 
                                id="price" name="price" step="0.01" min="0" required>
                     </div>
                     <button type="submit" class="btn btn-lg btn-primary w-100">
-                        Add to Inventory
+                        Agregar al Inventario
                     </button>
                 </form>
             </div>

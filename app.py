@@ -52,30 +52,42 @@ def decrease_inventory(beverage_id):
         db.session.add(transaction)
         db.session.commit()
         return jsonify({'success': True, 'new_quantity': beverage.quantity})
-    return jsonify({'success': False, 'error': 'Out of stock'}), 400
+    return jsonify({'success': False, 'error': 'Sin existencias'}), 400
 
 @app.route('/api/restock', methods=['POST'])
 def add_restock():
-    name = request.form.get('name')
-    quantity = int(request.form.get('quantity', 0))
-    price = float(request.form.get('price', 0))
-    
-    beverage = models.Beverage.query.filter_by(name=name).first()
-    if not beverage:
-        beverage = models.Beverage(name=name, quantity=0, price=price)
-        db.session.add(beverage)
-    
-    beverage.quantity += quantity
-    transaction = models.Transaction(
-        beverage_id=beverage.id,
-        quantity_change=quantity,
-        transaction_type='restock'
-    )
-    db.session.add(transaction)
-    db.session.commit()
-    
-    flash('Inventory updated successfully!', 'success')
-    return redirect(url_for('restock'))
+    try:
+        name = request.form.get('name')
+        quantity = int(request.form.get('quantity', 0))
+        price = float(request.form.get('price', 0))
+        
+        if not name or quantity <= 0 or price <= 0:
+            flash('Por favor complete todos los campos correctamente', 'danger')
+            return redirect(url_for('restock'))
+        
+        beverage = models.Beverage.query.filter_by(name=name).first()
+        if not beverage:
+            beverage = models.Beverage(name=name, quantity=0, price=price)
+            db.session.add(beverage)
+            db.session.commit()  # Commit to get the beverage.id
+        
+        beverage.quantity += quantity
+        
+        # Create transaction after beverage is committed
+        transaction = models.Transaction(
+            beverage_id=beverage.id,
+            quantity_change=quantity,
+            transaction_type='restock'
+        )
+        db.session.add(transaction)
+        db.session.commit()
+        
+        flash('¡Inventario actualizado exitosamente!', 'success')
+        return redirect(url_for('restock'))
+    except Exception as e:
+        db.session.rollback()
+        flash('Error al actualizar el inventario: ' + str(e), 'danger')
+        return redirect(url_for('restock'))
 
 @app.route('/api/stats')
 def get_stats():
