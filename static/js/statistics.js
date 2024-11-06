@@ -22,9 +22,37 @@ async function fetchAndDisplayStats() {
         const response = await fetch(`/api/stats?start_date=${startDate}&end_date=${endDate}`);
         const data = await response.json();
         
-        // Update summary statistics
+        // Update total sales
         document.getElementById('totalSales').textContent = data.total_sales;
-        document.getElementById('topProduct').textContent = data.top_product || '-';
+        
+        // Sort sales data by quantity in descending order
+        const sortedSalesData = [...data.sales_data].sort((a, b) => b.sales - a.sales);
+        
+        // Update product ranking
+        const rankingContainer = document.getElementById('productRanking');
+        rankingContainer.innerHTML = '';
+        
+        sortedSalesData.forEach((product, index) => {
+            const rankingItem = document.createElement('div');
+            rankingItem.className = 'list-group-item d-flex justify-content-between align-items-center';
+            
+            const rankBadge = document.createElement('span');
+            rankBadge.className = 'badge bg-primary rounded-pill me-2';
+            rankBadge.textContent = `#${index + 1}`;
+            
+            const productInfo = document.createElement('div');
+            productInfo.className = 'd-flex align-items-center flex-grow-1';
+            productInfo.innerHTML = `
+                <div class="ms-2">
+                    <div class="fw-bold">${product.name}</div>
+                    <small class="text-muted">Ventas: ${product.sales}</small>
+                </div>
+            `;
+            
+            rankingItem.appendChild(rankBadge);
+            rankingItem.appendChild(productInfo);
+            rankingContainer.appendChild(rankingItem);
+        });
         
         // Create the chart
         const ctx = document.getElementById('salesChart').getContext('2d');
@@ -37,10 +65,10 @@ async function fetchAndDisplayStats() {
         window.salesChart = new Chart(ctx, {
             type: 'bar',
             data: {
-                labels: data.sales_data.map(item => item.name),
+                labels: sortedSalesData.map(item => item.name),
                 datasets: [{
                     label: 'Ventas',
-                    data: data.sales_data.map(item => item.sales),
+                    data: sortedSalesData.map(item => item.sales),
                     backgroundColor: 'rgba(54, 162, 235, 0.5)',
                     borderColor: 'rgba(54, 162, 235, 1)',
                     borderWidth: 1
