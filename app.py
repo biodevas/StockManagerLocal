@@ -29,7 +29,8 @@ login_manager.login_message = 'Por favor inicie sesión para acceder a esta pág
 
 with app.app_context():
     import models
-    db.create_all()
+    db.drop_all()  # Drop all tables
+    db.create_all()  # Recreate all tables
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -131,7 +132,6 @@ def add_restock():
         
         beverage.quantity += quantity
         
-        # Create transaction after beverage is committed
         transaction = models.Transaction(
             beverage_id=beverage.id,
             quantity_change=quantity,
