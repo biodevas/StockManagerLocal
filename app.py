@@ -7,6 +7,7 @@ from datetime import datetime
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from werkzeug.utils import secure_filename
 from PIL import Image
+import imghdr
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
@@ -28,11 +29,13 @@ app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
 
 # File Upload Configuration
 UPLOAD_FOLDER = 'static/uploads'
-ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp', 'avif'}
 MAX_IMAGE_SIZE = (800, 800)
+MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
 DEFAULT_IMAGE = 'default_beverage.png'
 
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+app.config['MAX_CONTENT_LENGTH'] = MAX_FILE_SIZE
 
 # Create uploads directory if it doesn't exist
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
@@ -52,16 +55,34 @@ with app.app_context():
     db.drop_all()  # Drop all tables
     db.create_all()  # Recreate all tables
 
+def validate_image(stream):
+    """Validate image format using imghdr"""
+    header = stream.read(512)
+    stream.seek(0)
+    format = imghdr.what(None, header)
+    if not format:
+        return None
+    return '.' + (format if format != 'jpeg' else 'jpg')
+
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 def process_image(image_path):
     try:
         with Image.open(image_path) as img:
+            # Verify image format
+            if img.format.lower() not in [ext.upper() for ext in ALLOWED_EXTENSIONS]:
+                logger.error(f"Invalid image format: {img.format}")
+                return False
+                
+            # Process image
             img.thumbnail(MAX_IMAGE_SIZE)
             img.save(image_path, optimize=True, quality=85)
-        logger.info(f"Image processed successfully: {image_path}")
-        return True
+            
+            # Verify file permissions
+            os.chmod(image_path, 0o644)
+            logger.info(f"Image processed successfully: {image_path}")
+            return True
     except Exception as e:
         logger.error(f"Error processing image {image_path}: {str(e)}")
         return False
@@ -123,6 +144,7 @@ def inventory():
             if not os.path.exists(image_path):
                 logger.warning(f"Image not found for {beverage.name}: {image_path}")
                 beverage.image_path = DEFAULT_IMAGE
+                db.session.commit()
     return render_template('inventory.html', beverages=beverages)
 
 @app.route('/restock')
@@ -174,25 +196,45 @@ def add_restock():
         # Handle image upload
         if 'image' in request.files:
             file = request.files['image']
-            if file and allowed_file(file.filename):
+            if file and file.filename:
                 try:
-                    filename = secure_filename(f"{beverage.id}_{file.filename}")
+                    # Validate file extension
+                    if not allowed_file(file.filename):
+                        raise ValueError(f"Invalid file extension. Allowed extensions are: {', '.join(ALLOWED_EXTENSIONS)}")
+                    
+                    # Additional server-side format validation
+                    file_ext = validate_image(file.stream)
+                    if not file_ext:
+                        raise ValueError("Invalid image format")
+                    
+                    # Save and process the image
+                    filename = secure_filename(f"{beverage.id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}{file_ext}")
                     filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                    
+                    logger.debug(f"Saving image for {beverage.name} to {filepath}")
                     file.save(filepath)
+                    
                     if process_image(filepath):
+                        # Remove old image if it exists and is not the default
+                        if beverage.image_path and beverage.image_path != DEFAULT_IMAGE:
+                            old_image_path = os.path.join(app.config['UPLOAD_FOLDER'], beverage.image_path)
+                            if os.path.exists(old_image_path):
+                                os.remove(old_image_path)
+                                logger.info(f"Removed old image: {old_image_path}")
+                        
                         beverage.image_path = filename
                         logger.info(f"Image uploaded successfully for {beverage.name}: {filepath}")
                     else:
-                        beverage.image_path = DEFAULT_IMAGE
-                        logger.error(f"Failed to process image for {beverage.name}")
+                        if os.path.exists(filepath):
+                            os.remove(filepath)
+                        raise ValueError("Failed to process image")
                 except Exception as e:
                     logger.error(f"Error saving image for {beverage.name}: {str(e)}")
+                    flash(f'Error al subir la imagen: {str(e)}', 'danger')
                     beverage.image_path = DEFAULT_IMAGE
             else:
-                logger.warning(f"Invalid or no image file provided for {beverage.name}")
+                logger.warning(f"No image file provided for {beverage.name}")
                 beverage.image_path = DEFAULT_IMAGE
-        else:
-            beverage.image_path = DEFAULT_IMAGE
         
         beverage.quantity += quantity
         
