@@ -7,6 +7,7 @@ from datetime import datetime
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from werkzeug.utils import secure_filename
 from PIL import Image
+import PIL.WebPImagePlugin  # Explicit WebP support
 import imghdr
 
 # Configure logging
@@ -68,23 +69,42 @@ def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 def process_image(image_path):
+    """Process and optimize uploaded images"""
     try:
         with Image.open(image_path) as img:
-            # Verify image format
-            if img.format.lower() not in [ext.upper() for ext in ALLOWED_EXTENSIONS]:
-                logger.error(f"Invalid image format: {img.format}")
-                return False
-                
-            # Process image
-            img.thumbnail(MAX_IMAGE_SIZE)
-            img.save(image_path, optimize=True, quality=85)
+            # Convert RGBA images to RGB if needed
+            if img.mode in ('RGBA', 'LA'):
+                background = Image.new('RGB', img.size, 'white')
+                if img.mode == 'RGBA':
+                    background.paste(img, mask=img.split()[3])
+                else:
+                    background.paste(img, mask=img.split()[1])
+                img = background
+
+            # Resize image if needed
+            if img.size[0] > MAX_IMAGE_SIZE[0] or img.size[1] > MAX_IMAGE_SIZE[1]:
+                img.thumbnail(MAX_IMAGE_SIZE)
+
+            # Save with format-specific optimizations
+            format = img.format if img.format else 'JPEG'
+            save_options = {}
             
-            # Verify file permissions
+            if format == 'JPEG':
+                save_options = {'quality': 85, 'optimize': True}
+            elif format == 'PNG':
+                save_options = {'optimize': True}
+            elif format == 'WEBP':
+                save_options = {'quality': 85, 'method': 6}
+            
+            img.save(image_path, format=format, **save_options)
             os.chmod(image_path, 0o644)
             logger.info(f"Image processed successfully: {image_path}")
             return True
+            
     except Exception as e:
         logger.error(f"Error processing image {image_path}: {str(e)}")
+        if os.path.exists(image_path):
+            os.remove(image_path)
         return False
 
 @login_manager.user_loader
@@ -200,14 +220,17 @@ def add_restock():
                 try:
                     # Validate file extension
                     if not allowed_file(file.filename):
-                        raise ValueError(f"Invalid file extension. Allowed extensions are: {', '.join(ALLOWED_EXTENSIONS)}")
+                        raise ValueError("El formato de archivo no está permitido. Formatos permitidos: " + 
+                                      ", ".join(ALLOWED_EXTENSIONS))
                     
                     # Additional server-side format validation
                     file_ext = validate_image(file.stream)
-                    if not file_ext:
-                        raise ValueError("Invalid image format")
+                    if not file_ext and not file.filename.lower().endswith('.webp'):
+                        raise ValueError("El formato de imagen no es válido")
                     
                     # Save and process the image
+                    if file.filename.lower().endswith('.webp'):
+                        file_ext = '.webp'
                     filename = secure_filename(f"{beverage.id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}{file_ext}")
                     filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
                     
@@ -225,12 +248,14 @@ def add_restock():
                         beverage.image_path = filename
                         logger.info(f"Image uploaded successfully for {beverage.name}: {filepath}")
                     else:
-                        if os.path.exists(filepath):
-                            os.remove(filepath)
-                        raise ValueError("Failed to process image")
+                        raise ValueError("Error al procesar la imagen. Por favor, intente con otra imagen")
+                except ValueError as ve:
+                    logger.error(f"Validation error for {beverage.name}: {str(ve)}")
+                    flash(str(ve), 'danger')
+                    beverage.image_path = DEFAULT_IMAGE
                 except Exception as e:
                     logger.error(f"Error saving image for {beverage.name}: {str(e)}")
-                    flash(f'Error al subir la imagen: {str(e)}', 'danger')
+                    flash('Error al subir la imagen. Por favor, intente nuevamente', 'danger')
                     beverage.image_path = DEFAULT_IMAGE
             else:
                 logger.warning(f"No image file provided for {beverage.name}")
