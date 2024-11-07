@@ -82,6 +82,67 @@ python main.py
 
 La aplicación estará disponible en `http://localhost:5000`
 
+## Despliegue en Producción
+
+### Opción 1: Despliegue en Replit (Recomendado)
+
+1. Fork el repositorio en Replit
+2. Configurar las variables de entorno en los Secrets de Replit
+3. La aplicación se ejecutará automáticamente
+
+Replit proporciona:
+- Gestión automática de dependencias
+- Base de datos PostgreSQL incluida
+- HTTPS y dominio personalizado
+- Monitoreo y logs integrados
+- Reinicio automático en caso de fallos
+
+### Opción 2: Despliegue con Supervisor (Servidor Dedicado)
+
+Si necesitas desplegar en un servidor dedicado, puedes usar Supervisor:
+
+1. Instalar Supervisor:
+```bash
+sudo apt-get update
+sudo apt-get install supervisor
+```
+
+2. Crear archivo de configuración:
+```bash
+sudo nano /etc/supervisor/conf.d/beverage_inventory.conf
+```
+
+3. Configuración del servicio:
+```ini
+[program:beverage_inventory]
+directory=/ruta/a/tu/proyecto
+command=python main.py
+user=tu_usuario
+autostart=true
+autorestart=true
+stderr_logfile=/var/log/supervisor/beverage_inventory.err.log
+stdout_logfile=/var/log/supervisor/beverage_inventory.out.log
+environment=
+    DATABASE_URL="%(ENV_DATABASE_URL)s",
+    SMTP_SERVER="%(ENV_SMTP_SERVER)s",
+    SMTP_PORT="%(ENV_SMTP_PORT)s",
+    SMTP_USER="%(ENV_SMTP_USER)s",
+    SMTP_PASSWORD="%(ENV_SMTP_PASSWORD)s"
+```
+
+4. Gestionar el servicio:
+```bash
+sudo supervisorctl reread
+sudo supervisorctl update
+sudo supervisorctl start beverage_inventory
+```
+
+5. Comandos útiles:
+- Ver estado: `sudo supervisorctl status beverage_inventory`
+- Detener: `sudo supervisorctl stop beverage_inventory`
+- Reiniciar: `sudo supervisorctl restart beverage_inventory`
+- Ver logs: `sudo tail -f /var/log/supervisor/beverage_inventory.out.log`
+
 ## Estructura del Proyecto
 
 ```
@@ -107,6 +168,9 @@ La aplicación estará disponible en `http://localhost:5000`
 - Las rutas están protegidas mediante Flask-Login
 - Las imágenes subidas se validan y procesan de forma segura
 - Las consultas SQL utilizan SQLAlchemy para prevenir inyecciones
+- Asegurar los permisos adecuados en archivos de configuración
+- Usar variables de entorno para información sensible
+- Configurar HTTPS en producción
 
 ## Soporte
 
