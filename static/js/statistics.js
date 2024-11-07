@@ -49,7 +49,6 @@ async function fetchAndDisplayStats() {
             productInfo.innerHTML = `
                 <div class="fw-bold">${product.name}</div>
                 <small class="text-muted">Ventas: ${product.sales}</small>
-                <small class="text-muted">Usuario: ${product.user}</small>
             `;
             
             rankingItem.appendChild(rankBadge);
@@ -68,7 +67,7 @@ async function fetchAndDisplayStats() {
         window.salesChart = new Chart(ctx, {
             type: 'bar',
             data: {
-                labels: sortedSalesData.map(item => `${item.name} (${item.user})`),
+                labels: sortedSalesData.map(item => item.name),
                 datasets: [{
                     label: 'Ventas',
                     data: sortedSalesData.map(item => item.sales),
@@ -97,7 +96,7 @@ async function fetchAndDisplayStats() {
                 plugins: {
                     title: {
                         display: true,
-                        text: 'Ventas por Producto y Usuario'
+                        text: 'Ventas por Producto'
                     },
                     legend: {
                         display: false

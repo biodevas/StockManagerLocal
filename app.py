@@ -318,23 +318,20 @@ def get_stats():
         else:
             end_date = datetime.now()
 
+        # Modified query to group only by product
         sales_query = db.session.query(
             models.Transaction.beverage_id,
             models.Beverage.name,
-            models.User.email.label('user_email'),
             db.func.sum(db.func.abs(models.Transaction.quantity_change)).label('total_sales')
         ).join(
             models.Beverage
-        ).join(
-            models.User
         ).filter(
             models.Transaction.transaction_type == 'sale',
             models.Transaction.timestamp >= start_date,
             models.Transaction.timestamp <= end_date
         ).group_by(
             models.Transaction.beverage_id,
-            models.Beverage.name,
-            models.User.email
+            models.Beverage.name
         )
         
         sales_data = []
@@ -346,7 +343,6 @@ def get_stats():
             sales_count = int(sale.total_sales)
             sales_data.append({
                 'name': sale.name,
-                'user': sale.user_email,
                 'sales': sales_count
             })
             total_sales += sales_count
@@ -457,14 +453,14 @@ def export_transactions():
 
         si = io.StringIO()
         writer = csv.writer(si)
-        writer.writerow(['Producto', 'Cantidad', 'Usuario', 'Tipo', 'Fecha'])
+        writer.writerow(['Producto', 'Cantidad', 'Tipo', 'Usuario', 'Fecha'])
 
         for transaction in transactions:
             writer.writerow([
                 transaction.name,
-                abs(transaction.quantity_change) if transaction.transaction_type == 'sale' else transaction.quantity_change,
-                transaction.user_email,
+                abs(transaction.quantity_change),
                 'Venta' if transaction.transaction_type == 'sale' else 'Reabastecimiento',
+                transaction.user_email,
                 transaction.timestamp.strftime('%Y-%m-%d %H:%M:%S')
             ])
 
