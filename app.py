@@ -12,7 +12,6 @@ import imghdr
 import csv
 import io
 from dotenv import load_dotenv
-from email_service import send_low_stock_alert
 
 load_dotenv()  # This will load the environment variables from .env file
 
@@ -195,15 +194,6 @@ def decrease_inventory(beverage_id):
         )
         db.session.add(transaction)
         db.session.commit()
-        
-        # Check if stock is low and send alert
-        if beverage.quantity < 5:
-            send_low_stock_alert(
-                beverage_name=beverage.name,
-                current_quantity=beverage.quantity,
-                user_email=current_user.email
-            )
-        
         return jsonify({'success': True, 'new_quantity': beverage.quantity})
     return jsonify({'success': False, 'error': 'Sin existencias'}), 400
 
@@ -448,7 +438,7 @@ def export_transactions():
         for transaction in transactions:
             writer.writerow([
                 transaction.name,
-                abs(transaction.quantity_change),
+                abs(transaction.quantity_change) if transaction.transaction_type == 'sale' else transaction.quantity_change,
                 transaction.user_email,
                 'Venta' if transaction.transaction_type == 'sale' else 'Reabastecimiento',
                 transaction.timestamp.strftime('%Y-%m-%d %H:%M:%S')
