@@ -1,0 +1,35 @@
+INFO:email_service:Attempting to send low stock alert for Coca-Cola
+INFO:email_service:Current quantity: 4
+INFO:email_service:Starting SMTP connection...
+INFO:email_service:SMTP TLS started...
+ERROR:email_service:Error sending low stock alert: (534, b'5.7.9 Application-specific password required. For more information, go to\n5.7.9  https://support.google.com/mail/?p=InvalidSecondFactor d2e1a72fcca58-72407a38055sm32080b3a.26 - gsmtp')
+ERROR:email_service:Full traceback:
+Traceback (most recent call last):
+  File "/home/runner/workspace/email_service.py", line 37, in send_low_stock_alert
+    server.login(os.getenv('SMTP_USER'), os.getenv('SMTP_PASSWORD'))
+  File "/nix/store/f98g7xbckgqbkagdvpzc2r6lv3h1p9ki-python3-3.11.9/lib/python3.11/smtplib.py", line 750, in login
+    raise last_exception
+  File "/nix/store/f98g7xbckgqbkagdvpzc2r6lv3h1p9ki-python3-3.11.9/lib/python3.11/smtplib.py", line 739, in login
+    (code, resp) = self.auth(
+                   ^^^^^^^^^^
+  File "/nix/store/f98g7xbckgqbkagdvpzc2r6lv3h1p9ki-python3-3.11.9/lib/python3.11/smtplib.py", line 662, in auth
+    raise SMTPAuthenticationError(code, resp)
+smtplib.SMTPAuthenticationError: (534, b'5.7.9 Application-specific password required. For more information, go to\n5.7.9  https://support.google.com/mail/?p=InvalidSecondFactor d2e1a72fcca58-72407a38055sm32080b3a.26 - gsmtp')
+INFO:werkzeug:172.31.196.46 - - [07/Nov/2024 06:27:32] "POST /api/decrease/1 HTTP/1.1" 200 -
+INFO:email_service:Attempting to send low stock alert for Coca-Cola
+INFO:email_service:Current quantity: 3
+INFO:email_service:Starting SMTP connection...
+INFO:email_service:SMTP TLS started...
+ERROR:email_service:Error sending low stock alert: (534, b'5.7.9 Application-specific password required. For more information, go to\n5.7.9  https://support.google.com/mail/?p=InvalidSecondFactor 00721157ae682-6eaceb7de79sm243957b3.69 - gsmtp')
+ERROR:email_service:Full traceback:
+Traceback (most recent call last):
+  File "/home/runner/workspace/email_service.py", line 37, in send_low_stock_alert
+    server.login(os.getenv('SMTP_USER'), os.getenv('SMTP_PASSWORD'))
+  File "/nix/store/f98g7xbckgqbkagdvpzc2r6lv3h1p9ki-python3-3.11.9/lib/python3.11/smtplib.py", line 750, in login
+    raise last_exception
+  File "/nix/store/f98g7xbckgqbkagdvpzc2r6lv3h1p9ki-python3-3.11.9/lib/python3.11/smtplib.py", line 739, in login
+    (code, resp) = self.auth(
+                   ^^^^^^^^^^
+  File "/nix/store/f98g7xbckgqbkagdvpzc2r6lv3h1p9ki-python3-3.11.9/lib/python3.11/smtplib.py", line 662, in auth
+    raise SMTPAuthenticationError(code, resp)
+smtplib.SMTPAuthenticationError: (534, b'5.7.9 Application-specific password required. For more information, go to\n5.7.9  https://support.google.com/mail/?p=InvalidSecondFactor 00721157ae682-6eaceb7de79sm243957b3.69 - gsmtp')

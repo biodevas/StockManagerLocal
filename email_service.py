@@ -29,18 +29,25 @@ def send_low_stock_alert(beverage_name, current_quantity, user_email='tesoreria@
         msg['From'] = os.getenv('SMTP_USER')
         msg['To'] = user_email
         
-        # Send email using SMTP
-        with smtplib.SMTP(os.getenv('SMTP_SERVER'), int(os.getenv('SMTP_PORT'))) as server:
-            logger.info("Starting SMTP connection...")
+        # Use standard SMTP settings
+        smtp_server = os.getenv('SMTP_SERVER', 'smtp.gmail.com')  # Changed from smtp-relay
+        smtp_port = int(os.getenv('SMTP_PORT', 587))
+        smtp_user = os.getenv('SMTP_USER')
+        smtp_pass = os.getenv('SMTP_PASSWORD')
+        
+        logger.info(f"Sending from: {smtp_user} to: {user_email}")
+        logger.info("Establishing SMTP connection...")
+        
+        with smtplib.SMTP(smtp_server, smtp_port) as server:
             server.starttls()
-            logger.info("SMTP TLS started...")
-            server.login(os.getenv('SMTP_USER'), os.getenv('SMTP_PASSWORD'))
-            logger.info("SMTP login successful...")
+            logger.info("Starting TLS...")
+            logger.info(f"Attempting login with user: {smtp_user}")
+            server.login(smtp_user, smtp_pass)
             server.send_message(msg)
             logger.info(f"Email alert sent successfully to {user_email}")
-            
-        return True
         
+        return True
+    
     except Exception as e:
         logger.error(f"Error sending low stock alert: {str(e)}")
         logger.exception("Full traceback:")
