@@ -8,10 +8,18 @@ logger = logging.getLogger(__name__)
 
 def send_low_stock_alert(beverage_name, current_quantity, user_email='tesoreria@biodevas.org'):
     try:
-        logger.info(f"Attempting to send low stock alert for {beverage_name}")
-        logger.info(f"SMTP Configuration - Server: {os.getenv('SMTP_SERVER')}, Port: {os.getenv('SMTP_PORT')}")
-        logger.info(f"Sending from: {os.getenv('SMTP_USER')} to: {user_email}")
-        
+        # Validate required environment variables
+        required_env_vars = ['SMTP_SERVER', 'SMTP_PORT', 'SMTP_USER', 'SMTP_PASSWORD']
+        missing_vars = [var for var in required_env_vars if not os.getenv(var)]
+        if missing_vars:
+            raise ValueError(f"Missing required environment variables: {', '.join(missing_vars)}")
+
+        # Improved logging for SMTP configuration
+        logger.info(f"Mail server: {os.getenv('SMTP_SERVER')}:{os.getenv('SMTP_PORT')}")
+        logger.info(f"From: {os.getenv('SMTP_USER')}")
+        logger.info(f"To: {user_email}")
+        logger.info(f"Sending low stock alert for {beverage_name} (Quantity: {current_quantity})")
+
         # Email content
         subject = f'¡Alerta de Stock Bajo! - {beverage_name}'
         body = f'''
@@ -23,34 +31,36 @@ def send_low_stock_alert(beverage_name, current_quantity, user_email='tesoreria@
         
         Por favor, reabastezca este producto pronto.
         '''
-        
+
         # Create message
         msg = MIMEText(body)
         msg['Subject'] = subject
         msg['From'] = os.getenv('SMTP_USER')
         msg['To'] = user_email
-        
+
         # Send email using SMTP
         logger.info("Establishing SMTP connection...")
         with smtplib.SMTP(os.getenv('SMTP_SERVER'), int(os.getenv('SMTP_PORT'))) as server:
             logger.info("Starting TLS...")
             server.starttls()
-            
+
             smtp_user = os.getenv('SMTP_USER')
             smtp_pass = os.getenv('SMTP_PASSWORD')
-            
-            if not smtp_user or not smtp_pass:
-                raise ValueError("SMTP credentials not found in environment variables")
-                
+
             logger.info(f"Attempting login with user: {smtp_user}")
-            server.login(smtp_user, smtp_pass)
-            
+            try:
+                server.login(smtp_user, smtp_pass)
+            except smtplib.SMTPAuthenticationError as auth_error:
+                if "Application-specific password required" in str(auth_error):
+                    logger.error("Gmail requires an application-specific password. Please configure it correctly.")
+                raise
+
             logger.info("Sending email message...")
             server.send_message(msg)
-            
+
         logger.info(f"Email alert sent successfully to {user_email}")
         return True
-        
+
     except ValueError as ve:
         logger.error(f"Configuration error: {str(ve)}")
         logger.exception("Full traceback:")
