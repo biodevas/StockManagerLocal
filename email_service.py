@@ -23,31 +23,29 @@ def send_low_stock_alert(beverage_name, current_quantity, user_email='tesoreria@
         Por favor, reabastezca este producto pronto.
         '''
         
-        # Create message
         msg = MIMEText(body)
         msg['Subject'] = subject
         msg['From'] = os.getenv('SMTP_USER')
         msg['To'] = user_email
         
-        # Use standard SMTP settings
-        smtp_server = os.getenv('SMTP_SERVER', 'smtp.gmail.com')  # Changed from smtp-relay
-        smtp_port = int(os.getenv('SMTP_PORT', 587))
-        smtp_user = os.getenv('SMTP_USER')
-        smtp_pass = os.getenv('SMTP_PASSWORD')
+        logger.info(f"Sending from: {os.getenv('SMTP_USER')} to: {user_email}")
         
-        logger.info(f"Sending from: {smtp_user} to: {user_email}")
-        logger.info("Establishing SMTP connection...")
-        
-        with smtplib.SMTP(smtp_server, smtp_port) as server:
+        with smtplib.SMTP('smtp.gmail.com', 587) as server:
+            server.ehlo()
             server.starttls()
-            logger.info("Starting TLS...")
-            logger.info(f"Attempting login with user: {smtp_user}")
-            server.login(smtp_user, smtp_pass)
-            server.send_message(msg)
-            logger.info(f"Email alert sent successfully to {user_email}")
-        
-        return True
-    
+            logger.info("TLS started")
+            
+            try:
+                server.login(os.getenv('SMTP_USER'), os.getenv('SMTP_PASSWORD'))
+                logger.info("Login successful")
+                server.send_message(msg)
+                logger.info(f"Email alert sent successfully to {user_email}")
+                return True
+            except smtplib.SMTPAuthenticationError as auth_error:
+                logger.error(f"SMTP Authentication failed: {auth_error}")
+                logger.error("Please ensure you're using an App Password if 2FA is enabled")
+                return False
+            
     except Exception as e:
         logger.error(f"Error sending low stock alert: {str(e)}")
         logger.exception("Full traceback:")
