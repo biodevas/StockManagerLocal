@@ -25,6 +25,7 @@ class Beverage(db.Model):
     image_path = db.Column(db.String(255))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    is_active = db.Column(db.Boolean, default=True, nullable=False)
     transactions = db.relationship('Transaction', backref='beverage', lazy=True)
 
 class Transaction(db.Model):

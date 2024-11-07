@@ -12,7 +12,10 @@
                         <select class="form-select form-select-lg mb-3" id="beverage-select">
                             <option value="">Nueva Bebida</option>
                             {% for beverage in beverages %}
-                            <option value="{{ beverage.id }}" data-price="{{ beverage.price }}">{{ beverage.name }}</option>
+                            <option value="{{ beverage.id }}" data-price="{{ beverage.price }}" 
+                                    {% if not beverage.is_active %}disabled{% endif %}>
+                                {{ beverage.name }}{% if not beverage.is_active %} (Desactivado){% endif %}
+                            </option>
                             {% endfor %}
                         </select>
                     </div>
@@ -37,10 +40,50 @@
                                id="image" name="image" accept="image/*">
                         <small class="form-text text-muted">Solo para nuevas bebidas</small>
                     </div>
-                    <button type="submit" class="btn btn-lg btn-primary w-100">
+                    <button type="submit" class="btn btn-lg btn-primary w-100 mb-3">
                         Agregar al Inventario
                     </button>
                 </form>
+            </div>
+        </div>
+
+        <div class="card mt-4">
+            <div class="card-body">
+                <h3 class="card-title">Gestionar Bebidas</h3>
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Nombre</th>
+                                <th>Cantidad</th>
+                                <th>Precio</th>
+                                <th>Estado</th>
+                                <th>Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for beverage in beverages %}
+                            <tr>
+                                <td>{{ beverage.name }}</td>
+                                <td>{{ beverage.quantity }}</td>
+                                <td>${{ "%.2f"|format(beverage.price) }}</td>
+                                <td>
+                                    <span class="badge {% if beverage.is_active %}bg-success{% else %}bg-danger{% endif %}">
+                                        {{ 'Activo' if beverage.is_active else 'Desactivado' }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <button class="btn btn-sm {% if beverage.is_active %}btn-warning{% else %}btn-success{% endif %} toggle-status"
+                                            data-beverage-id="{{ beverage.id }}"
+                                            data-is-active="{{ beverage.is_active|lower }}">
+                                        {{ 'Desactivar' if beverage.is_active else 'Activar' }}
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>

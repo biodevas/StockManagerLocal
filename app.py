@@ -157,7 +157,7 @@ def logout():
 @app.route('/')
 @login_required
 def inventory():
-    beverages = models.Beverage.query.all()
+    beverages = models.Beverage.query.filter_by(is_active=True).all()
     for beverage in beverages:
         if beverage.image_path:
             image_path = os.path.join(app.config['UPLOAD_FOLDER'], beverage.image_path)
@@ -171,7 +171,7 @@ def inventory():
 @app.route('/restock')
 @login_required
 def restock():
-    beverages = models.Beverage.query.all()
+    beverages = models.Beverage.query.all()  # Show all beverages in restock page
     return render_template('restock.html', beverages=beverages)
 
 @app.route('/statistics')
@@ -276,6 +276,25 @@ def add_restock():
         flash('Error al actualizar el inventario: ' + str(e), 'danger')
         return redirect(url_for('restock'))
 
+@app.route('/api/toggle-beverage/<int:beverage_id>', methods=['POST'])
+@login_required
+def toggle_beverage(beverage_id):
+    try:
+        beverage = models.Beverage.query.get_or_404(beverage_id)
+        beverage.is_active = not beverage.is_active
+        db.session.commit()
+        status = 'activado' if beverage.is_active else 'desactivado'
+        flash(f'Bebida {beverage.name} ha sido {status}', 'success')
+        return jsonify({
+            'success': True,
+            'is_active': beverage.is_active,
+            'message': f'Bebida {status} exitosamente'
+        })
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Error toggling beverage status: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 @app.route('/api/stats')
 @login_required
 def get_stats():
@@ -293,7 +312,7 @@ def get_stats():
             end_date = end_date + timedelta(days=1)
         else:
             end_date = datetime.now()
-        
+
         sales_query = db.session.query(
             models.Transaction.beverage_id,
             models.Beverage.name,
