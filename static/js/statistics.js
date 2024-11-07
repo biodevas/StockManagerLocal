@@ -45,12 +45,11 @@ async function fetchAndDisplayStats() {
             rankBadge.textContent = `#${index + 1}`;
             
             const productInfo = document.createElement('div');
-            productInfo.className = 'd-flex align-items-center flex-grow-1';
+            productInfo.className = 'd-flex flex-column flex-grow-1';
             productInfo.innerHTML = `
-                <div class="ms-2">
-                    <div class="fw-bold">${product.name}</div>
-                    <small class="text-muted">Ventas: ${product.sales}</small>
-                </div>
+                <div class="fw-bold">${product.name}</div>
+                <small class="text-muted">Ventas: ${product.sales}</small>
+                <small class="text-muted">Usuario: ${product.user}</small>
             `;
             
             rankingItem.appendChild(rankBadge);
@@ -69,7 +68,7 @@ async function fetchAndDisplayStats() {
         window.salesChart = new Chart(ctx, {
             type: 'bar',
             data: {
-                labels: sortedSalesData.map(item => item.name),
+                labels: sortedSalesData.map(item => `${item.name} (${item.user})`),
                 datasets: [{
                     label: 'Ventas',
                     data: sortedSalesData.map(item => item.sales),
@@ -87,12 +86,18 @@ async function fetchAndDisplayStats() {
                         ticks: {
                             stepSize: 1
                         }
+                    },
+                    x: {
+                        ticks: {
+                            maxRotation: 45,
+                            minRotation: 45
+                        }
                     }
                 },
                 plugins: {
                     title: {
                         display: true,
-                        text: 'Ventas por Producto'
+                        text: 'Ventas por Producto y Usuario'
                     },
                     legend: {
                         display: false

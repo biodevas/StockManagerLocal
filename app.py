@@ -189,6 +189,7 @@ def decrease_inventory(beverage_id):
         beverage.quantity -= 1
         transaction = models.Transaction(
             beverage_id=beverage_id,
+            user_id=current_user.id,
             quantity_change=-1,
             transaction_type='sale'
         )
@@ -261,6 +262,7 @@ def add_restock():
         
         transaction = models.Transaction(
             beverage_id=beverage.id,
+            user_id=current_user.id,
             quantity_change=quantity,
             transaction_type='restock'
         )
@@ -296,16 +298,20 @@ def get_stats():
         sales_query = db.session.query(
             models.Transaction.beverage_id,
             models.Beverage.name,
+            models.User.email.label('user_email'),
             db.func.sum(db.func.abs(models.Transaction.quantity_change)).label('total_sales')
         ).join(
             models.Beverage
+        ).join(
+            models.User
         ).filter(
             models.Transaction.transaction_type == 'sale',
             models.Transaction.timestamp >= start_date,
             models.Transaction.timestamp <= end_date
         ).group_by(
             models.Transaction.beverage_id,
-            models.Beverage.name
+            models.Beverage.name,
+            models.User.email
         )
         
         sales_data = []
@@ -317,6 +323,7 @@ def get_stats():
             sales_count = int(sale.total_sales)
             sales_data.append({
                 'name': sale.name,
+                'user': sale.user_email,
                 'sales': sales_count
             })
             total_sales += sales_count
@@ -357,9 +364,12 @@ def export_sales():
             models.Beverage.name,
             models.Transaction.quantity_change,
             models.Transaction.timestamp,
-            models.Beverage.price
+            models.Beverage.price,
+            models.User.email.label('user_email')
         ).join(
             models.Beverage
+        ).join(
+            models.User
         ).filter(
             models.Transaction.transaction_type == 'sale',
             models.Transaction.timestamp >= start_date,
@@ -368,12 +378,13 @@ def export_sales():
 
         si = io.StringIO()
         writer = csv.writer(si)
-        writer.writerow(['Producto', 'Cantidad', 'Fecha', 'Precio Unitario', 'Total'])
+        writer.writerow(['Producto', 'Cantidad', 'Usuario', 'Fecha', 'Precio Unitario', 'Total'])
 
         for sale in sales:
             writer.writerow([
                 sale.name,
                 abs(sale.quantity_change),
+                sale.user_email,
                 sale.timestamp.strftime('%Y-%m-%d %H:%M:%S'),
                 f"${sale.price:.2f}",
                 f"${abs(sale.quantity_change * sale.price):.2f}"
@@ -410,9 +421,12 @@ def export_transactions():
             models.Beverage.name,
             models.Transaction.quantity_change,
             models.Transaction.timestamp,
-            models.Transaction.transaction_type
+            models.Transaction.transaction_type,
+            models.User.email.label('user_email')
         ).join(
             models.Beverage
+        ).join(
+            models.User
         ).filter(
             models.Transaction.timestamp >= start_date,
             models.Transaction.timestamp <= end_date
@@ -420,12 +434,13 @@ def export_transactions():
 
         si = io.StringIO()
         writer = csv.writer(si)
-        writer.writerow(['Producto', 'Cantidad', 'Tipo', 'Fecha'])
+        writer.writerow(['Producto', 'Cantidad', 'Usuario', 'Tipo', 'Fecha'])
 
         for transaction in transactions:
             writer.writerow([
                 transaction.name,
                 abs(transaction.quantity_change),
+                transaction.user_email,
                 'Venta' if transaction.transaction_type == 'sale' else 'Reabastecimiento',
                 transaction.timestamp.strftime('%Y-%m-%d %H:%M:%S')
             ])
