@@ -6,7 +6,3 @@ Werkzeug==3.0.1
 SQLAlchemy==2.0.23
 psycopg2-binary==2.9.9
 python-dotenv==1.0.0
-google-api-python-client
-google-auth
-google-auth-httplib2
-google-auth-oauthlib
