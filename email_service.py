@@ -1,4 +1,5 @@
 import smtplib
+import ssl
 from email.mime.text import MIMEText
 from datetime import datetime
 import os
@@ -30,10 +31,15 @@ def send_low_stock_alert(beverage_name, current_quantity, user_email='tesoreria@
         
         logger.info(f"Sending from: {os.getenv('SMTP_USER')} to: {user_email}")
         
-        with smtplib.SMTP('smtp.gmail.com', 587) as server:
-            server.ehlo()
-            server.starttls()
-            logger.info("TLS started")
+        # Create SMTP object with SSL context
+        context = ssl.create_default_context()
+        
+        with smtplib.SMTP(os.getenv('SMTP_SERVER'), int(os.getenv('SMTP_PORT'))) as server:
+            server.ehlo()  # Can be omitted
+            logger.info("Starting TLS handshake...")
+            server.starttls(context=context)  # Secure the connection
+            server.ehlo()  # Can be omitted
+            logger.info("TLS connection established")
             
             try:
                 server.login(os.getenv('SMTP_USER'), os.getenv('SMTP_PASSWORD'))
