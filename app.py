@@ -60,7 +60,6 @@ login_manager.login_message = 'Por favor inicie sesión para acceder a esta pág
 
 with app.app_context():
     import models
-    db.drop_all()
     db.create_all()
 
 def validate_image(stream):
