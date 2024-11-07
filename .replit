@@ -19,6 +19,14 @@ args = "Flask Web App"
 task = "workflow.run"
 args = "Create Default Image"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Update Schema"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Verify Schema"
+
 [[workflows.workflow]]
 name = "Flask Web App"
 author = "agent"
@@ -47,6 +55,34 @@ task = "packager.installForAll"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "python create_default_image.py"
+
+[[workflows.workflow]]
+name = "Update Schema"
+author = "agent"
+
+[workflows.workflow.metadata]
+agentRequireRestartOnSave = false
+
+[[workflows.workflow.tasks]]
+task = "packager.installForAll"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "python update_schema.py"
+
+[[workflows.workflow]]
+name = "Verify Schema"
+author = "agent"
+
+[workflows.workflow.metadata]
+agentRequireRestartOnSave = false
+
+[[workflows.workflow.tasks]]
+task = "packager.installForAll"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "python verify_schema.py"
 
 [deployment]
 run = ["sh", "-c", "python main.py"]
